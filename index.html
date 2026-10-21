@@ -6,32 +6,123 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PhotoAutoManager</title>
 <style>
-body {
-  margin: 0;
-  background: #f6f5f2;
-  color: #242424;
-  font-family: Arial, sans-serif;
-}
-header {
-  background: #bd1834;
-  color: white;
-  padding: 25px 20px;
-}
-header h1 {
-  margin: 0 0 8px;
-}
-.card {
-  background: white;
-  border-radius: 16px;
-  padding: 20px;
-  margin: 18px;
-}
+body{font-family:Arial,sans-serif;background:#fff3f6;color:#30232a;margin:0}
+header{background:#bd1834;color:white;padding:22px}
+main{max-width:850px;margin:20px auto;padding:15px}
+section{background:white;padding:18px;margin:15px 0;border-radius:14px}
+input,textarea,button{box-sizing:border-box;width:100%;padding:12px;margin:7px 0;border:1px solid #ddd;border-radius:8px;font:inherit}
+button{background:#bd1834;color:white;border:0;font-weight:bold;cursor:pointer}
+.photo{display:inline-block;width:120px;margin:6px;vertical-align:top}
+.photo img{width:120px;height:120px;object-fit:cover;border-radius:8px}
+small{color:#65545a}
 </style>
 </head>
 <body>
 <header>
-  <h1>📸 PhotoAutoManager</h1>
-  <p>Organise tes photos Pinterest</p>
+<h1>📸 PhotoAutoManager</h1>
+<p>Prépare tes publications Pinterest</p>
 </header>
+<main>
+<section>
+<h2>1. Importer tes photos</h2>
+<input id="files" type="file" accept="image/*" multiple>
+<div id="photos"></div>
+</section>
+<section>
+<h2>2. Préparer une publication</h2>
+<label>Titre</label>
+<input id="title" placeholder="Titre de ton Pin">
+<label>Description</label>
+<textarea id="desc" placeholder="Description de la photo"></textarea>
+<label>Lien (facultatif)</label>
+<input id="link" placeholder="https://...">
+<label>Date</label>
+<input id="date" type="date">
+<label>Heure</label>
+<input id="time" type="time" value="18:00">
+<button id="add">Ajouter à ma liste</button>
+</section>
+<section>
+<h2>3. Publications programmées</h2>
+<div id="list">Aucune publication pour le moment.</div>
+<button id="export">Exporter ma liste</button>
+</section>
+<section>
+<h2>4. Contrôle</h2>
+<input id="secret" type="password" placeholder="Crée un code secret">
+<button id="start">Démarrer le mode préparation</button>
+<button id="stop">Arrêter</button>
+<p id="status">Mode préparation arrêté.</p>
+<small>Cette version prépare et exporte ta liste. Elle ne publie pas encore sur Pinterest. L'automatisation réelle nécessitera l'accès à l'API Pinterest et un service en ligne.</small>
+</section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+let files=[],queue=[],running=false;
+$("files").onchange=e=>{
+ files=[...e.target.files];
+ $("photos").innerHTML="";
+ files.forEach(f=>{
+  let box=document.createElement("div");
+  box.className="photo";
+  let img=document.createElement("img");
+  img.src=URL.createObjectURL(f);
+  let name=document.createElement("small");
+  name.textContent=f.name;
+  box.append(img,name);
+  $("photos").append(box);
+ });
+};
+function render(){
+ let out=$("list");
+ out.innerHTML="";
+ if(!queue.length){out.textContent="Aucune publication pour le moment.";return;}
+ queue.forEach((p,i)=>{
+  let box=document.createElement("div");
+  box.style.padding="10px";
+  box.style.borderBottom="1px solid #ddd";
+  let title=document.createElement("strong");
+  title.textContent=(i+1)+". "+p.title;
+  let info=document.createElement("p");
+  info.textContent=p.date+" à "+p.time+" — "+p.desc;
+  let del=document.createElement("button");
+  del.textContent="Supprimer";
+  del.onclick=()=>{queue.splice(i,1);render();};
+  box.append(title,info,del);
+  out.append(box);
+ });
+}
+$("add").onclick=()=>{
+ if(!files.length){alert("Choisis d'abord une photo.");return;}
+ if(!$("title").value.trim()){alert("Ajoute un titre.");return;}
+ queue.push({
+  photoNames:files.map(f=>f.name),
+  title:$("title").value,
+  desc:$("desc").value,
+  link:$("link").value,
+  date:$("date").value,
+  time:$("time").value
+ })
+ render();
+ alert("Publication ajoutée à ta liste !");
+};
+$("export").onclick=()=>{
+ let blob=new Blob([JSON.stringify(queue,null,2)],{type:"application/json"});
+ let a=document.createElement("a");
+ a.href=URL.createObjectURL(blob);
+ a.download="mes-publications.json";
+ a.click();
+ URL.revokeObjectURL(a.href);
+};
+$("start").onclick=()=>{
+ if(!$("secret").value){alert("Crée d'abord un code secret.");return;}
+ running=true;
+ $("status").textContent="Mode préparation activé. Aucune publication Pinterest n'est envoyée.";
+};
+$("stop").onclick=()=>{
+ running=false;
+ $("status").textContent="Mode préparation arrêté.";
+};
+</script>
 </body>
 </html>
